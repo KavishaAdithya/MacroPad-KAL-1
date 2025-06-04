@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Voice Search</title>
+</head>
+<body>
+  
+  <script>
+    
+    const recognition = new webkitSpeechRecognition(); 
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    
+    recognition.start();
+    
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(transcript);
+    };
+  </script>
+</body>
+</html>
