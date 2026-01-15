@@ -14,7 +14,7 @@ import json
 import TEST
 
 
-usb_cdc.data.timeout = 0.1
+
 
 
 encoder_Button = DigitalInOut(board.GP19)
@@ -43,6 +43,8 @@ keys = [
     ['7', '8', '9']
 ]
 
+profile_num = 0
+
 km = keypad.KeyMatrix(row_pins=rows,column_pins=cols,columns_to_anodes=False,interval=0.01)
 
 def open_Links(url):
@@ -50,36 +52,78 @@ def open_Links(url):
     time.sleep(0.5)
     Keyboard_Layout.write(url)
     keyB.send(Keycode.ENTER)
+    
+    
+def open_Apps(name):
+    keyB.send(Keycode.WINDOWS)
+    time.sleep(0.5)
+    Keyboard_Layout.write(name)
+    keyB.send(Keycode.ENTER)
+    
+    
+    
+profile_0_actions ={
+    
+    "1":lambda:open_Links("https://www.youtube.com/"),
+    "2":lambda:open_Links("https://aistudio.google.com/prompts/new_chat"),
+    "3":lambda:open_Links("https://lms.eng.sjp.ac.lk/"),
+    "4":lambda:open_Links("https://github.com/"),
+    "5":lambda:open_Links("https://play.hbomax.com/"),
+    "6":lambda:open_Links("https://mail.google.com/mail/u/0/#inbox"),
+    "7":lambda:open_Apps("Netflix"),
+    "8":lambda:open_Apps("Whatsapp")
+    
+    }
+
+profile_1_actions ={
+    
+    "1":lambda:ConsuB.send(ConsumerControlCode.SCAN_PREVIOUS_TRACK),
+    "4":lambda:ConsuB.send(ConsumerControlCode.STOP),
+    "7":lambda:ConsuB.send(ConsumerControlCode.SCAN_NEXT_TRACK),
+    "2":lambda:keyB.send(Keycode.LEFT_ARROW),
+    "5":lambda:ConsuB.send(ConsumerControlCode.PLAY_PAUSE),
+    "8":lambda:keyB.send(Keycode.RIGHT_ARROW),
+    "3":lambda:None,
+    "6":lambda:None
+    
+    }
+
+
+profile_2_actions ={
+    
+    "1":lambda:keyB.send(Keycode.LEFT_CONTROL,Keycode.A), #Select ALL
+    "4":lambda:keyB.send(Keycode.LEFT_CONTROL,Keycode.Z), #Undo
+    "7":lambda:keyB.send(Keycode.LEFT_CONTROL,Keycode.Y), #Redo
+    "2":lambda:keyB.send(Keycode.LEFT_ALT,Keycode.EQUALS), #insert equation
+    "5":lambda:keyB.send(Keycode.LEFT_CONTROL,Keycode.LEFT_SHIFT,Keycode.EQUALS), #insert superscript
+    "8":lambda:keyB.send(Keycode.LEFT_CONTROL,Keycode.LEFT_SHIFT,Keycode.MINUS), #insert subscript
+    "3":lambda:None,
+    "6":lambda:None
+    
+    }
+
+profiles = [
+    profile_0_actions,
+    profile_1_actions,
+    profile_2_actions
+    ]
+
+box = [["YT","Git","Netf","AI","HBO","Whts","LMS","Gmail",">>"],
+       [" < |"," Stop"," | >","  <"," > ||","  >","test2","test2"," >>"],
+       ["Sel","Undo","Redo","Eqn","Sup","Sub","test3","test3"," >>"]]
+
+
+TEST.key_bindings(box[0])
 
 
 while True:
-    
-    data_out = {}
-    data_rec = None
-    
-    if usb_cdc.data.in_waiting >0:
-        data_in = usb_cdc.data.readline()
         
-        if len(data_in)>0:
-            try:
-                data_rec = json.loads(data_in)
-                print(data_rec)
-            except ValueError:
-                data_rec = {"raw":data_in.decode()}
-                
     position = encoder.position
-
+   
     if position != last_Position or last_Position == None:
-        #print(position,last_Position)
-        #display.fill(0)
-        #OLED_Disp(f"{position}",10,10,255, size=2)
-        #Send_Data("VOL\n")
-        
-                #TEST.display_Header(pc=True,mic=False,speaker_mute=False,speaker_unmute=True,text1=data_rec)
                     
         if last_Position != None:
-            
-            
+                
             try:
                 if position > last_Position:
                     ConsuB.send(ConsumerControlCode.VOLUME_INCREMENT)
@@ -96,7 +140,11 @@ while True:
     
     if not encoder_Button.value:
         ConsuB.send(ConsumerControlCode.MUTE)
-  
+       
+
+        
+
+        
     event = km.events.get()
     
     if event:
@@ -106,38 +154,18 @@ while True:
         key = keys[row][col]
 
         if event.pressed:
-            
-            if key == '1':
-                open_Links("https://www.youtube.com/")        
-                
-            elif key == '2':
-                data_out = {"Key":"2"}
-                      
-            elif key == '3':
-                open_Links("https://chatgpt.com/")                
-                
-            elif key == '4':
-                open_Links("https://lms.eng.sjp.ac.lk/")
-                               
-            elif key == '5':
-                ConsuB.send(ConsumerControlCode.PLAY_PAUSE)
-                                
-            elif key == '6':
-                data_out = {"Key":"6"}
-                               
-            elif key == '7':
-                keyB.send(Keycode.WINDOWS,Keycode.LEFT_SHIFT,Keycode.S)
-                               
-            elif key == '8':
-                keyB.send(Keycode.WINDOWS,Keycode.D)
-                               
-            elif key == '9':
-                open_Links("https://github.com/")
-                
-            if data_out:
-                print(json.dumps(data_out))
-                usb_cdc.data.write(json.dumps(data_out).encode("utf-8")+b"\r\n")
-                
+                    
+                if key == "9":
+                     profile_num=profile_num+1
+                     profile_num = profile_num%3
+                     TEST.key_bindings(box[profile_num])
+                     print(profile_num)
+                     
+                else:
+                    current_profile = profiles[profile_num]
+                    if key in current_profile:
+                        current_profile[key]()
+                                    
         elif event.released:
             None
             
